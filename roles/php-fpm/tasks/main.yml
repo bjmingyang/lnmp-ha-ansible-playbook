@@ -1,0 +1,9 @@
+- name: install php-fpm
+  yum: name={{ item }}
+  with_items:
+    - php-fpm
+    - php-pdo
+    - php-mysqlnd
+- name: copy php-fpm config file
+  template: src=www.conf.j2 dest=/etc/php-fpm.d/www.conf mode=0644
+  notify: restart php-fpm

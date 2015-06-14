@@ -1,0 +1,41 @@
+- name: install mysql
+  yum: name={{ item }}
+  with_items:
+    - mariadb
+    - mariadb-server
+    - MySQL-python
+- name: start mysql service
+  service: name=mariadb state=started enabled=yes
+- name: copy my.cnf
+  template: src=my.cnf.j2 dest=/etc/my.cnf
+  notify: restart mysql
+- name: copy .my.cnf file with root password credentials
+  template: src=.my.cnf.j2 dest=/root/.my.cnf owner=root mode=0600
+- name: update mysql root password
+  command: mysqladmin -uroot password '19921212'
+- name: create the replication users
+  mysql_user: name='repl' host='%' password='19921212' priv=*.*:'REPLICATION SLAVE,REPLICATION CLIENT'
+- name: create the databases
+  mysql_db: name=test_repl state=present
+- name: check if slave is already configured for replication
+  mysql_replication: mode=getslave
+  ignore_errors: true
+  register: slave
+  when: mysql_repl_role == 'slave'
+- name: get the current master servers replication status
+  mysql_replication: mode=getmaster
+  delegate_to: "{{ hostvars['webserver1'].ansible_eno16777736.ipv4.address }}"
+  register: repl_stat
+  when: slave|failed and mysql_repl_role == 'slave'
+- name: change the master in slave to start the replication
+  mysql_replication: >
+    mode=changemaster
+    master_host={{ hostvars['webserver1'].ansible_eno16777736.ipv4.address }}
+    master_user=repl
+    master_password=19921212
+    master_log_file={{ repl_stat.File }}
+    master_log_pos={{ repl_stat.Position }}
+  when: slave|failed and mysql_repl_role == 'slave'
+- name: start replication
+  mysql_replication: mode=startslave
+  when: slave|failed and mysql_repl_role == 'slave'

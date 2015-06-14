@@ -1,0 +1,5 @@
+- name: install keepalived
+  yum: name=keepalived
+- name: copy keepalived config file
+  template: src=keepalived.conf.j2 dest=/etc/keepalived/keepalived.conf mode=0644
+  notify: restart keepalived

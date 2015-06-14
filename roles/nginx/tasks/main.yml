@@ -1,0 +1,18 @@
+- name: install nginx
+  yum: name=nginx
+- name: create directories for ssl certificates
+  file: path=/etc/nginx/ssl state=directory
+  when: tls_enabled
+- name: copy TLS key
+  copy: src=files/nginx.key dest={{ key_file }} owner=root mode=0600
+  when: tls_enabled
+  notify: restart nginx
+- name: copy TLS certificates
+  copy: src=files/nginx.crt dest={{ cert_file }} owner=root mode=0600
+  when: tls_enabled
+  notify: restart nginx
+- name: copy nginx config file
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: restart nginx
+- name: copy index.html
+  template: src=index.php.j2 dest=/var/www/html/index.php mode=0644

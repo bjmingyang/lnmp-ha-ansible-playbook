@@ -1,0 +1,22 @@
+- name: deploy nginx
+  hosts: webservers
+  sudo: yes
+  roles:
+    - role: nginx
+      tls_enabled: False
+    - role: keepalived
+      virtual_ipaddress: 192.168.213.200
+      keepalived_priority:
+        webserver1: 100
+        webserver2: 99
+      keepalived_state:
+        webserver1: MASTER
+        webserver2: BACKUP
+      keepalived_script:
+        webserver1: systemctl status nginx.service > /dev/null 2>&1
+        webserver2: systemctl status nginx.service > /dev/null 2>&1;[ $? -eq 0  ] || systemctl stop keepalived.service
+    - role: php-fpm
+      listen_allowed_clients:
+        - "{{ hostvars['webserver1'].ansible_eno16777736.ipv4.address }}"
+        - "{{ hostvars['webserver2'].ansible_eno16777736.ipv4.address }}"
+    - role: mysql

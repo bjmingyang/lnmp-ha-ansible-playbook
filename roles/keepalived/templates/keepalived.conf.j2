@@ -1,0 +1,30 @@
+! Configuration File for keepalived
+
+global_defs {
+   router_id LVS_DEVEL_TEST
+}
+
+vrrp_script chk_httpd {
+    script "{{ keepalived_script[inventory_hostname] }}"
+    interval 2
+    weight -2
+}
+
+vrrp_instance VI_1 {
+    state {{ keepalived_state[inventory_hostname] }}
+    interface eno16777736
+    virtual_router_id 51
+    priority {{ keepalived_priority[inventory_hostname] }}
+    advert_int 1
+    mcast_src_ip {{ hostvars[inventory_hostname].ansible_eno16777736.ipv4.address }}
+    track_script {
+        chk_httpd
+    }
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        {{ virtual_ipaddress }}
+    }
+}
